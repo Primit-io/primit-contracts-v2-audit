@@ -1,0 +1,25 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+test = "test"
+script = "script"
+solc = "0.8.20"
+optimizer = true
+optimizer_runs = 200
+via_ir = true
+fs_permissions = [{ access = "read-write", path = "./" }]
+
+# AVAX C-Chain
+[rpc_endpoints]
+avax = "${AVAX_MAINNET_RPC_URL}"
+fuji = "${AVAX_FUJI_RPC_URL}"
+
+[etherscan]
+avax = { key = "${SNOWTRACE_API_KEY}", url = "https://api.snowtrace.io/api" }
+fuji = { key = "${SNOWTRACE_API_KEY}", url = "https://api-testnet.snowtrace.io/api" }
+
+[fmt]
+line_length = 120
+tab_width = 4
+bracket_spacing = true

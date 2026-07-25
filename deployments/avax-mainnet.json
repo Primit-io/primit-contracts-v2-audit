@@ -1,0 +1,85 @@
+{
+  "chainId": 43114,
+  "chain": "Avalanche C-Chain",
+  "rpc": "https://api.avax.network/ext/bc/C/rpc",
+  "explorer": "https://snowscan.xyz",
+  "deployedAt": "2026-07-24T12:30:14Z",
+  "deployer": "0x2821c28b7A57c2E0537f5595e8e0eEAEC4b9F386",
+  "stablecoin": {
+    "symbol": "USDC",
+    "issuer": "Circle (native)",
+    "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+    "decimals": 6
+  },
+  "roles": {
+    "owner": {
+      "address": "0x2821c28b7A57c2E0537f5595e8e0eEAEC4b9F386",
+      "type": "EOA",
+      "targetPostAudit": "2-of-3 SAFE multisig"
+    },
+    "backendSigner": {
+      "address": "0xBAAf208B9554dBA7C7316EBa3A77669F024Ba047",
+      "type": "EOA",
+      "purpose": "EIP-712 signature for withdraw / rebate / liquidation"
+    },
+    "oracleSigner": {
+      "address": "0xBAAf208B9554dBA7C7316EBa3A77669F024Ba047",
+      "type": "EOA",
+      "note": "v1 shares with backendSigner; will be split before public opening"
+    }
+  },
+  "contracts": {
+    "Vault": {
+      "type": "UUPS Proxy",
+      "proxy": "0xdf19d902fcb6295366a06620f76dcb49e686c403",
+      "impl": "0x96a87962fe36db1ec9604a212ee67dab7f9bfa99",
+      "verified": true,
+      "source": "vault_contract/src/contracts/core/vault/Vault.sol",
+      "eip712": { "name": "Primit Vault AVAX", "version": "1.0.0" }
+    },
+    "LiquidationManager": {
+      "type": "Direct",
+      "address": "0xceb119aadd56b2fe602b634d50c40af21e985de1",
+      "verified": true,
+      "source": "vault_contract/src/contracts/core/liquidation/LiquidationManager.sol"
+    },
+    "ReferralStorage": {
+      "type": "UUPS Proxy",
+      "proxy": "0x8426de38a4b7b36b04d91826e28d8d3a29394d57",
+      "impl": "0x9a5ef7d0780e2e5a698317e59f02e550da3b4607",
+      "verified": true,
+      "source": "referral_storage_contract/src/contracts/referral/ReferralStorage.sol"
+    },
+    "RebateDistributor": {
+      "type": "UUPS Proxy",
+      "proxy": "0x726c54c38119d66e8d2b5d7339b57d8b47e48a3b",
+      "impl": "0x8d9e273fbe5df22e35534bc2e20aaa2714326d73",
+      "verified": true,
+      "source": "rebate_contract/src/contracts/core/referral/RebateDistributor.sol",
+      "eip712": { "name": "Primit Rebate AVAX", "version": "1.0.0" }
+    },
+    "LiquidityVault_PLP": {
+      "type": "UUPS Proxy",
+      "proxy": "0xc78786e840b8179b2f3fdbf0fedf69466a51ddf7",
+      "impl": "0x7a9702521f1dfe1c078551d0e8e8e54580ebd8d7",
+      "verified": true,
+      "source": "plp_contract/src/LiquidityVault.sol",
+      "eip712": { "name": "PrimitLiquidityProvider", "version": "1" },
+      "params": {
+        "MIN_DEPOSIT_USDC": 100,
+        "WARMUP_DURATION_MINUTES": 30,
+        "TIER_3D_LOCKUP_DAYS": 3,
+        "TIER_7D_LOCKUP_DAYS": 7,
+        "TIER_3D_WEIGHT_BP": 8500,
+        "TIER_7D_WEIGHT_BP": 10000,
+        "PERFORMANCE_FEE_BP": 1000
+      }
+    },
+    "BufferPool": {
+      "type": "Direct",
+      "address": "0x83710e300ec5a77c9252be4202f818ee1428d6da",
+      "verified": true,
+      "source": "plp_contract/src/BufferPool.sol"
+    }
+  }
+}

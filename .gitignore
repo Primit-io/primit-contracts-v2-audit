@@ -1,0 +1,13 @@
+# Foundry build artifacts
+**/lib/
+**/out/
+**/cache/
+**/broadcast/
+
+# Local env
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
