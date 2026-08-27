@@ -37,6 +37,15 @@ interface IReferralRebate {
         address indexed newSigner
     );
 
+    /// @notice Emitted when the referral storage contract is updated (CertiK PRI-09)
+    event ReferralStorageUpdated(
+        address indexed oldReferralStorage,
+        address indexed newReferralStorage
+    );
+
+    /// @notice Emitted when the EIP-712 domain version is updated (CertiK PRI-09)
+    event Eip712DomainVersionUpdated(string oldVersion, string newVersion);
+
     // ==================== Functions ====================
 
     /// @notice Claim rebate (requires backend signature)

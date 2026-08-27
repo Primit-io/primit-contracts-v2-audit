@@ -117,6 +117,13 @@ contract RoleStore {
         if (_roleMembers[role].remove(account)) {
             _accountRoles[account].remove(role);
             emit RoleRevoked(role, account, msg.sender);
+            // CertiK PRI-19 · prune the role from _roles when its last member is revoked,
+            // so _roles reflects the currently-active roles and never accumulates entries
+            // for empty sets. Any future logic that iterates _roles now sees only real,
+            // in-use roles.
+            if (_roleMembers[role].length() == 0) {
+                _roles.remove(role);
+            }
         }
     }
 }

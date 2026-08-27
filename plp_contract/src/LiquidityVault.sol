@@ -89,6 +89,13 @@ contract LiquidityVault is
     /// @notice 全局总资产(USDC.e 6 decimals),做市 pnl 结算时更新
     uint256 public totalAssets;
 
+    /// @notice 锁定实现合约的初始化 · 只允许通过 UUPS proxy delegatecall 走 initialize · 阻止攻击者直接抢占实现的 admin 角色
+    /// @dev CertiK PRI-03 · Unprotected Upgradeable Contract
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     /// @notice 部署 marker,前端首次连接校验防钓鱼(D-PT-30)
     function deploymentMarker() external pure returns (bytes32) {
         return keccak256(abi.encodePacked("PLP-V1-AVAX-MAINNET"));
@@ -106,6 +113,14 @@ contract LiquidityVault is
     ) external initializer {
         if (_usdc == address(0)) revert ZeroAddress();
         if (_vault == address(0)) revert ZeroAddress();
+        // CertiK PRI-10 · Missing Zero Address Validation
+        // Reject zero-address role holders at initialize time to prevent
+        // a mis-configured proxy from silently landing with orphaned roles
+        // (deposits / withdraws would still work but no ADMIN could pause,
+        // no OPERATOR could settle PnL, no SIGNER could co-sign flows).
+        if (_admin == address(0)) revert ZeroAddress();
+        if (_operator == address(0)) revert ZeroAddress();
+        if (_signer == address(0)) revert ZeroAddress();
         __Pausable_init();
         __AccessControl_init();
         __EIP712_init("PrimitLiquidityProvider", "1");

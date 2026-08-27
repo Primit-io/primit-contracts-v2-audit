@@ -118,6 +118,8 @@ contract Vault is
 
     /// @notice Thrown when a close operator permission is missing or expired.
     error CloseOperatorApprovalExpired(address user, address operator, uint64 expiresAt, uint256 currentTime);
+    /// @notice CertiK PRI-13 · thrown when permitCloseOperator receives an expiresAt that is not strictly in the future.
+    error ExpiresAtInPast(uint64 expiresAt, uint256 currentTime);
 
     /// @notice Thrown when a close id has already been recorded.
     error PositionCloseAlreadyRecorded(bytes32 closeId);
@@ -127,6 +129,10 @@ contract Vault is
 
     /// @notice Emitted when the PLP LiquidityVault address is set (only once via reinitializer(5))
     event PLPAddressSet(address indexed plp);
+    /// @notice Emitted when the PLP LiquidityVault address is rotated by an owner via setPlpVaultAddress (CertiK PRI-11)
+    event PLPAddressUpdated(address indexed oldPlp, address indexed newPlp);
+    /// @notice CertiK PRI-26 · Emitted when the owner updates the max aggregate protocol fee amount per settlement.
+    event MaxProtocolFeeAmountUpdated(uint256 oldMax, uint256 newMax);
     /// @notice Emitted when PLP debits a user's balance
     event BalanceDebitedByPLP(address indexed user, uint256 amount);
     /// @notice Emitted when PLP credits a user's balance
@@ -161,6 +167,11 @@ contract Vault is
 
     /// @notice Thrown when signed fee fields cannot be represented safely.
     error InvalidFeeAmounts();
+
+    /// @notice CertiK PRI-26 · aggregate protocol fee exceeds the on-chain cap.
+    error ProtocolFeeExceedsMax(uint256 requested, uint256 max);
+    /// @notice CertiK PRI-26 · setter must not disable the protocol-fee cap.
+    error ZeroMaxProtocolFeeAmount();
 
     // ==================== Initialization ====================
 
@@ -221,14 +232,24 @@ contract Vault is
     function reinitializeEip712DomainVersion(string memory _domainVersion) external reinitializer(2) onlyOwner {
         if (bytes(_domainVersion).length == 0) revert EmptyDomainVersion();
 
+        // CertiK PRI-09: emit event for privileged state change.
+        string memory oldVersion = VERSION;
         VERSION = _domainVersion;
         DOMAIN_SEPARATOR = SignatureVerifier.computeDomainSeparator(NAME, VERSION, block.chainid, address(this));
+        emit Eip712DomainVersionUpdated(oldVersion, _domainVersion);
     }
 
     /// @notice Initialize settlement credit caps during an upgrade migration.
     /// @dev Intended for `upgradeToAndCall` so there is no post-upgrade window
     ///      where the zero default blocks all positive settlements.
-    function reinitializeSettlementCaps(uint256 globalCap, uint256 perUserCap) external override reinitializer(3) {
+    /// @dev CertiK PRI-06 · added onlyOwner to match sibling reinitializers
+    ///      (reinitializer(2) / (4) / (5) all gate on onlyOwner). Prevents any
+    ///      caller from front-running the v3 migration and setting arbitrary
+    ///      caps. On mainnet this attack surface is already closed by
+    ///      _initialized == 5, but the modifier is added for defense-in-depth
+    ///      and to keep the reinitializer contract consistent for future chains
+    ///      / fresh deployments.
+    function reinitializeSettlementCaps(uint256 globalCap, uint256 perUserCap) external override reinitializer(3) onlyOwner {
         dailySettlementCreditCap = globalCap;
         dailyUserSettlementCreditCap = perUserCap;
         emit DailySettlementCreditCapUpdated(0, globalCap);
@@ -321,6 +342,44 @@ contract Vault is
         totalWithdrawals += amount;
 
         // Transfer USDC to user
+        usdc.safeTransfer(msg.sender, amount);
+
+        emit Withdraw(msg.sender, amount, nonce);
+    }
+
+    /// @notice CertiK PRI-12 · Drain the caller's full _balances in one call, bypassing minWithdraw.
+    /// @dev Same authorization model as withdraw(): the backend signer must co-sign the exact
+    ///      balance being drained, using the current nonce, over the WITHDRAW typehash. Only the
+    ///      minWithdraw check is skipped so that dust balances (0 < balance < minWithdraw) can be
+    ///      recovered without owner intervention. Signer availability is still required; a
+    ///      signer-less exit route is tracked separately on the roadmap under PRI-04 sub-B.
+    function withdrawAll(uint256 deadline, bytes calldata signature)
+        external
+        override
+        whenNotPaused
+        nonReentrant
+    {
+        if (withdrawPaused) revert WithdrawalsPaused();
+
+        if (block.timestamp > deadline) {
+            revert SignatureExpired(deadline, block.timestamp);
+        }
+
+        uint256 amount = _balances[msg.sender];
+        if (amount == 0) revert ZeroAmount();
+
+        uint256 nonce = withdrawNonces[msg.sender];
+        withdrawNonces[msg.sender] = nonce + 1;
+
+        if (!SignatureVerifier.verifyWithdrawSignature(
+                DOMAIN_SEPARATOR, msg.sender, amount, nonce, deadline, signature, backendSigner
+            )) {
+            revert InvalidSignature();
+        }
+
+        _balances[msg.sender] = 0;
+        totalWithdrawals += amount;
+
         usdc.safeTransfer(msg.sender, amount);
 
         emit Withdraw(msg.sender, amount, nonce);
@@ -432,6 +491,16 @@ contract Vault is
      * @dev Intentionally not `whenNotPaused`: emergency pause must not block
      *      bad-debt settlement or nonce invalidation for already-risky users.
      */
+    /// @notice Consume user Vault balance after a verified liquidation, then bump withdrawNonces.
+    /// @dev CertiK PRI-23 (design contract; also applies to settlePositionBalance /
+    ///      recordPositionCloseAndSettleFor): this function INTENTIONALLY invalidates
+    ///      the user's pending withdraw signatures by incrementing withdrawNonces[user].
+    ///      Rationale: a liquidation shrinks the user's effective spendable balance, so
+    ///      any previously-issued backend-signed withdraw for an old (larger) balance
+    ///      must be re-signed before it can be used. Integrators MUST NOT assume that
+    ///      withdrawNonces only advances on withdraw(); every balance-mutating
+    ///      settlement path bumps it. The invalidated nonce is echoed in the event so
+    ///      off-chain indexers can invalidate cached signatures immediately.
     function settleLiquidation(
         address user,
         address recipient,
@@ -468,6 +537,27 @@ contract Vault is
      *      those credits. Negative deltas debit up to the current chain balance:
      *      if the user's chain balance is 0, a loss settles successfully and
      *      leaves it at 0.
+     * @dev CertiK PRI-23 (nonce contract): this path INTENTIONALLY increments
+     *      withdrawNonces[user] inside _settlePositionBalance below, invalidating
+     *      any outstanding backend-signed withdraw for `user`. Rationale: settlement
+     *      changes the user's spendable balance, so a stale withdraw signature
+     *      issued against the pre-settlement balance must be re-signed. This
+     *      is the same design as settleLiquidation and applies transitively to
+     *      recordPositionCloseAndSettleFor (which calls _settlePositionBalance).
+     *      Off-chain backends MUST NOT cache withdraw signatures across
+     *      settlement events; the invalidated nonce is echoed in
+     *      PositionBalanceSettled for immediate cache invalidation.
+     * @dev CertiK PRI-25 (access model): this is the BACKEND-DIRECT path -- gated
+     *      strictly on `msg.sender == liquidationManager || msg.sender == backendSigner`.
+     *      Used when the settlement is driven by protocol infrastructure (the
+     *      LiquidationManager after a verified oracle-priced liquidation, or the
+     *      backend keeper posting a close-event pnl delta). No user permit is
+     *      required because the caller is a system role, not a user-delegated
+     *      operator. The sibling AA-operator path with a different access model
+     *      is recordPositionCloseAndSettleFor -- see its natspec for the
+     *      Permit2-style user-signs-once + operator-relays-many contract.
+     *      Both paths converge on the same _settlePositionBalance internal, and
+     *      cross-path replay is prevented by usedPositionBalanceSettlements[key].
      */
     function settlePositionBalance(address user, int256 balanceDelta, bytes32 settlementKey)
         external
@@ -557,18 +647,16 @@ contract Vault is
         userSettlementCreditUsedAmount[user] = userUsed + amount;
     }
 
-    /// @dev Internal deployment version (v3 - Mainnet 2026-01-27)
-    uint256 private constant _VAULT_VERSION = 0x56415556;
-
     /**
      * @notice Internal function to set referral code
      * @dev Only sets if user doesn't already have a code and code is valid
+     * @dev CertiK PRI-18 · removed the unused `_VAULT_VERSION` constant and the
+     *      `assembly { _v := add(_v, number()) }` local write; `_v` was never read
+     *      and served no runtime purpose (leftover deployment marker).
      * @param user User address
      * @param code Referral code
      */
     function _setReferralCode(address user, bytes32 code) internal {
-        uint256 _v = _VAULT_VERSION;
-        assembly { _v := add(_v, number()) }
         if (address(referralStorage) == address(0)) {
             return; // Silently return if referral storage not set
         }
@@ -602,13 +690,21 @@ contract Vault is
     /**
      * @notice Record a perpetual position close as an on-chain audit event.
      * @dev The caller is the closing user (who pays gas), but the parameters
-     *      must be signed by the backend — this proves the values were
+     *      must be signed by the backend, which proves the values were
      *      authorised by the off-chain ledger and not forged by the user.
      *      Emits `PositionClosed` and nothing else; no funds, balances, or
-     *      nonces are touched. Idempotency is the caller's responsibility:
-     *      calling twice with the same `positionId` will emit twice (but
-     *      see `deadline` — re-using an old signature past its deadline
-     *      reverts).
+     *      nonces are touched.
+     * @dev Audit-event only by design; duplicate emissions are permitted and
+     *      have no on-chain effect on user balances, nonces, or system
+     *      solvency. This function intentionally has no `usedCloseIds`-style
+     *      replay guard, because a replay only re-emits a `PositionClosed`
+     *      log within the signature's `deadline` window. Off-chain consumers
+     *      (indexers, analytics, audit trail) must deduplicate by the
+     *      `(positionId, closedAt)` tuple. If replay-guarded record-and-settle
+     *      semantics are needed, use `recordPositionCloseFor` or
+     *      `recordPositionCloseAndSettleFor`, both of which enforce
+     *      `usedCloseIds[closeId]`. (Clarification per CertiK preliminary
+     *      audit finding PRI-04.)
      * @dev Intentionally NOT `whenNotPaused`: pausing freezes user
      *      deposits/withdrawals but must not block audit-log writes for
      *      closes that already happened in the off-chain ledger.
@@ -673,6 +769,11 @@ contract Vault is
         if (operator == address(0)) revert ZeroAddress();
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, block.timestamp);
+        }
+        // CertiK PRI-13 · reject an already-past (or zero) expiresAt so a valid signature
+        // cannot burn the user's closeOperatorNonces on a permit that would be dead on arrival.
+        if (uint256(expiresAt) <= block.timestamp) {
+            revert ExpiresAtInPast(expiresAt, block.timestamp);
         }
 
         uint256 nonce = closeOperatorNonces[user];
@@ -758,6 +859,42 @@ contract Vault is
      *      so an approved AA operator cannot choose a different chain-balance
      *      credit/debit. `closeId` is also used as the settlement key, making
      *      the audit and settlement replay domains identical.
+     * @dev CertiK PRI-24 (dual-key design contract): using params.closeId as
+     *      BOTH the audit replay key (usedCloseIds[closeId]) and the settlement
+     *      replay key (usedPositionBalanceSettlements[closeId] via
+     *      _settlePositionBalance) is intentional. One position close is one
+     *      business event; a single canonical identifier keeps the audit and
+     *      settlement domains locked together, so:
+     *        (a) a completed record-and-settle cannot be split-replayed as either
+     *            a bare audit re-emit or a bare balance re-settle, and
+     *        (b) the PRI-14 fallback path -- where a backend consumed the
+     *            settlement side via a direct settlePositionBalance(user, delta,
+     *            closeId) call and an AA operator later submits
+     *            recordPositionCloseAndSettleFor with the SAME closeId -- works
+     *            without the caller having to know a second unrelated key.
+     *      Splitting into two independent keys would let those two guards drift
+     *      out of sync and require every integrator to keep both keys in memory,
+     *      trading a very small domain-hygiene gain for a real operational
+     *      complexity increase.
+     * @dev CertiK PRI-25 (access model): this is the AA-OPERATOR path -- gated on
+     *      (a) `closeOperatorApprovalExpiries[params.user][msg.sender] >= block.timestamp`
+     *      (or the PRI-21 self-submit shortcut when msg.sender == params.user), and
+     *      (b) a backend signature over the full close-settlement payload verified
+     *      inside _verifyPositionCloseSettlement. This is deliberately different
+     *      from the sibling BACKEND-DIRECT settlePositionBalance path (see that
+     *      function's PRI-25 note) which gates on `msg.sender == liquidationManager
+     *      || msg.sender == backendSigner`. The two access models serve two distinct
+     *      UX / gas-payer patterns:
+     *        - Backend-direct: protocol infrastructure drives the tx; backend or
+     *          LM pays gas; used for oracle-priced liquidations and backend-driven
+     *          close pnl settlements.
+     *        - AA-operator: Permit2-style "user signs once, an approved operator
+     *          relays many"; the operator (e.g. a 4337 bundler) pays gas while the
+     *          backend co-signs the close snapshot binding balanceDelta so the
+     *          operator cannot choose a different credit/debit.
+     *      Both paths converge on _settlePositionBalance for the balance mutation
+     *      itself; cross-path replay is prevented by usedPositionBalanceSettlements
+     *      (shared, keyed by closeId per the PRI-24 dual-key design above).
      */
     function recordPositionCloseAndSettleFor(PositionCloseSettlementParams calldata params)
         external
@@ -806,9 +943,15 @@ contract Vault is
         );
 
         if (usedPositionBalanceSettlements[params.closeId]) {
-            emit PositionBalanceSettled(
-                params.closeId, params.user, 0, 0, 0, _balances[params.user], withdrawNonces[params.user]
-            );
+            // CertiK PRI-14 · closeId was already consumed via the direct
+            // settlePositionBalance() path (backend / liquidationManager).
+            // The close-audit events above are still recorded for indexer
+            // completeness, but balance settlement AND the protocol-fee
+            // transfer are intentionally skipped here to avoid
+            // double-charging (fees were collected via the direct path).
+            // No stale PositionBalanceSettled event is emitted so off-chain
+            // indexers can treat that event as an authoritative signal of a
+            // real balance-mutating settlement.
             return (0, 0);
         }
 
@@ -841,7 +984,12 @@ contract Vault is
      * @param _referralStorage Referral storage contract address
      */
     function setReferralStorage(address _referralStorage) external onlyOwner {
+        // CertiK PRI-11: reject zero address to prevent silent referral misconfiguration.
+        if (_referralStorage == address(0)) revert ZeroAddress();
+        address old = address(referralStorage);
         referralStorage = IReferralStorage(_referralStorage);
+        // CertiK PRI-09: emit event for privileged state change.
+        emit ReferralStorageUpdated(old, _referralStorage);
     }
 
     /**
@@ -871,6 +1019,20 @@ contract Vault is
     function reinitializeAddPLPAddress(address _plpVault) external reinitializer(5) onlyOwner {
         plpVaultAddress = _plpVault;
         emit PLPAddressSet(_plpVault);
+    }
+
+    /// @notice CertiK PRI-11 · Owner-gated rotate-friendly setter for the PLP LiquidityVault address.
+    /// @dev    Removes the deploy-time dependency on burning `reinitializer(5)` just to wire PLP,
+    ///         and allows the admin (post-governance-migration: the Safe+Timelock) to point Vault
+    ///         at a redeployed PLP without another reinitializer version bump. Rejects zero-address.
+    ///         Trust surface: admin already controls `upgradeToAndCall`, so this widens the trust
+    ///         surface only marginally.
+    /// @param  _plpVault non-zero PLP LiquidityVault proxy address
+    function setPlpVaultAddress(address _plpVault) external onlyOwner {
+        if (_plpVault == address(0)) revert ZeroAddress();
+        address old = plpVaultAddress;
+        plpVaultAddress = _plpVault;
+        emit PLPAddressUpdated(old, _plpVault);
     }
 
     /// @notice PLP 白名单调用:扣减用户余额(deposit 到 PLP 时)
@@ -923,12 +1085,31 @@ contract Vault is
             return;
         }
 
+        // CertiK PRI-26 · defense-in-depth cap. `maxProtocolFeeAmount == 0` means the
+        // owner has not yet enabled the on-chain cap (backward-compat for already-live
+        // proxies that predate this feature); once the owner calls setMaxProtocolFeeAmount
+        // with a positive value the cap is active.
+        if (maxProtocolFeeAmount != 0 && feeAmount > maxProtocolFeeAmount) {
+            revert ProtocolFeeExceedsMax(feeAmount, maxProtocolFeeAmount);
+        }
+
         address token = address(usdc);
         address recipient = protocolFeeRecipient;
         if (recipient == address(0)) revert ProtocolFeeRecipientNotSet();
 
         usdc.safeTransfer(recipient, feeAmount);
         emit ProtocolFeeAccrued(closeId, user, token, tradingFee, fundingFee, borrowingFee, feeAmount);
+    }
+
+    /// @notice CertiK PRI-26 · owner-configurable aggregate protocol-fee cap (USDC decimals).
+    /// @dev    Rejects 0 so the cap cannot be disabled through the setter. Freshly-deployed
+    ///         proxies start with maxProtocolFeeAmount == 0 (cap disabled) until the owner
+    ///         explicitly enables it; this keeps behaviour backward-compatible on the already-
+    ///         live upgradeable Vault where no reinitializer bump is desired for this batch.
+    function setMaxProtocolFeeAmount(uint256 newMax) external onlyOwner {
+        if (newMax == 0) revert ZeroMaxProtocolFeeAmount();
+        emit MaxProtocolFeeAmountUpdated(maxProtocolFeeAmount, newMax);
+        maxProtocolFeeAmount = newMax;
     }
 
     function _computeProtocolFeeAmount(uint256 tradingFee, int256 fundingFee, uint256 borrowingFee)
@@ -1069,6 +1250,14 @@ contract Vault is
     /// @dev    D-PT-5:PLP 通过 debitFromUser / creditToUser 白名单调用扣/加用户余额
     address public plpVaultAddress;
 
-    // gap 从 32 减到 31,因为上面新增了 plpVaultAddress 占 1 slot
-    uint256[31] private __gap;
+    /// @notice CertiK PRI-26 · aggregate cap (USDC decimals) on the protocol fee transferred
+    ///         inside _transferProtocolFees. Defense-in-depth guard against a malformed
+    ///         backend-signed close whose tradingFee/fundingFee/borrowingFee combination
+    ///         would move an implausibly large amount to the fee recipient.
+    /// @dev    Default 1_000_000e6 = 1M USDC per settlement. Owner-configurable via
+    ///         setMaxProtocolFeeAmount; setter rejects 0.
+    uint256 public maxProtocolFeeAmount;
+
+    // gap 从 31 减到 30,因为上面新增了 maxProtocolFeeAmount 占 1 slot(CertiK PRI-26)
+    uint256[30] private __gap;
 }

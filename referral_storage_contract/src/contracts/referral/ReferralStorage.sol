@@ -40,6 +40,11 @@ contract ReferralStorage is Initializable, IReferralStorage, AccessControlUpgrad
     /// @notice Tier ID to discount share mapping (in basis points)
     mapping(uint256 => uint256) private _tierDiscountShares;
 
+    /// @notice Tier ID initialization flag (CertiK PRI-08 fix)
+    /// @dev Set to true by setTier(). setReferrerTier() checks this before assigning
+    ///      a non-default (>0) tier, preventing silent zero-rebate misconfiguration.
+    mapping(uint256 => bool) private _tierInitialized;
+
     // ==================== Constants ====================
 
     uint256 public constant BASIS_POINTS = 10_000; // 100%
@@ -65,6 +70,10 @@ contract ReferralStorage is Initializable, IReferralStorage, AccessControlUpgrad
     error InvalidTotalRebate(uint256 totalRebate);
     error ZeroAddress();
     error ZeroCode();
+
+    /// @notice Thrown when setReferrerTier() is called with a non-default tierId
+    ///         that has not been initialized via setTier() first (CertiK PRI-08).
+    error TierNotInitialized(uint256 tierId);
 
     // ==================== Initialization ====================
 
@@ -144,6 +153,7 @@ contract ReferralStorage is Initializable, IReferralStorage, AccessControlUpgrad
 
         _tierTotalRebates[_tierId] = _totalRebate;
         _tierDiscountShares[_tierId] = _discountShare;
+        _tierInitialized[_tierId] = true;
 
         emit TierSet(_tierId, _totalRebate, _discountShare);
     }
@@ -159,6 +169,9 @@ contract ReferralStorage is Initializable, IReferralStorage, AccessControlUpgrad
         onlyRole(ADMIN_ROLE)
     {
         if (_referrer == address(0)) revert ZeroAddress();
+        // CertiK PRI-08: reject unfinalized tier assignment. tierId 0 stays allowed
+        // (interpreted as "no tier / default zero rebate") for explicit unassignment.
+        if (_tierId != 0 && !_tierInitialized[_tierId]) revert TierNotInitialized(_tierId);
 
         _referrerTiers[_referrer] = _tierId;
         emit ReferrerTierSet(_referrer, _tierId);
@@ -182,19 +195,28 @@ contract ReferralStorage is Initializable, IReferralStorage, AccessControlUpgrad
 
     /**
      * @notice Grant handler role to a contract (vault/rebate)
+     * @dev CertiK PRI-17 · uses the internal `_grantRole` primitive (bypasses OZ's
+     *      "sender must hold role admin" check) so that the outer `onlyRole(ADMIN_ROLE)`
+     *      gate is the single source of truth. Pre-fix, the wrapper called the public
+     *      `grantRole` which enforced that the caller also held DEFAULT_ADMIN_ROLE
+     *      (the default admin of HANDLER_ROLE), breaking the intended delegated-admin
+     *      design as soon as ADMIN_ROLE and DEFAULT_ADMIN_ROLE were separated
+     *      (e.g. after the governance migration under PRI-01 / PRI-02).
      * @param _handler The address of the handler contract
      */
     function grantHandlerRole(address _handler) external onlyRole(ADMIN_ROLE) {
         if (_handler == address(0)) revert ZeroAddress();
-        grantRole(HANDLER_ROLE, _handler);
+        _grantRole(HANDLER_ROLE, _handler);
     }
 
     /**
      * @notice Revoke handler role from a contract
+     * @dev CertiK PRI-17 · symmetric to grantHandlerRole; uses `_revokeRole` primitive
+     *      so ADMIN_ROLE alone is sufficient (no implicit DEFAULT_ADMIN_ROLE requirement).
      * @param _handler The address of the handler contract
      */
     function revokeHandlerRole(address _handler) external onlyRole(ADMIN_ROLE) {
-        revokeRole(HANDLER_ROLE, _handler);
+        _revokeRole(HANDLER_ROLE, _handler);
     }
 
     // ==================== Governance Functions ====================
