@@ -81,6 +81,10 @@ contract RebateDistributor is
     /// @notice Thrown when array lengths don't match
     error ArrayLengthMismatch(uint256 usersLength, uint256 amountsLength);
 
+    /// @notice Thrown when batch input is not sorted strict-ascending or contains a duplicate
+    /// @dev CertiK PRI-07 fix. Enforced by requiring users[i] > users[i-1] for every i >= 1.
+    error DuplicateOrUnsortedRecipient(uint256 index, address current, address previous);
+
     /// @notice Thrown when domain name is empty
     error EmptyDomainName();
 
@@ -151,7 +155,10 @@ contract RebateDistributor is
     ) external reinitializer(2) onlyOwner {
         if (bytes(_domainVersion).length == 0) revert EmptyDomainVersion();
 
+        // CertiK PRI-09: emit event for privileged state change.
+        string memory oldVersion = VERSION;
         VERSION = _domainVersion;
+        emit Eip712DomainVersionUpdated(oldVersion, _domainVersion);
         DOMAIN_SEPARATOR = SignatureVerifier.computeDomainSeparator(
             NAME,
             VERSION,
@@ -235,6 +242,12 @@ contract RebateDistributor is
         uint256 userCount = 0;
 
         for (uint256 i = 0; i < users.length; i++) {
+            // CertiK PRI-07: require strict ascending order to make duplicate
+            // recipients impossible in a single batch (O(n), no extra storage).
+            if (i > 0 && users[i] <= users[i - 1]) {
+                revert DuplicateOrUnsortedRecipient(i, users[i], users[i - 1]);
+            }
+
             if (amounts[i] > 0 && users[i] != address(0)) {
                 // Update claimed amount
                 claimedRebates[users[i]] += amounts[i];
@@ -266,7 +279,12 @@ contract RebateDistributor is
      * @param _referralStorage Referral storage contract address
      */
     function setReferralStorage(address _referralStorage) external onlyOwner {
+        // CertiK PRI-11: reject zero address to prevent silent referral misconfiguration.
+        if (_referralStorage == address(0)) revert ZeroAddress();
+        address old = address(referralStorage);
         referralStorage = IReferralStorage(_referralStorage);
+        // CertiK PRI-09: emit event for privileged state change.
+        emit ReferralStorageUpdated(old, _referralStorage);
     }
 
     // ==================== Query Functions ====================

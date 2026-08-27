@@ -50,6 +50,12 @@ interface IVault {
     /// @notice Emitted when the authorized liquidation manager is updated.
     event LiquidationManagerUpdated(address indexed oldManager, address indexed newManager);
 
+    /// @notice Emitted when the referral storage contract is updated (CertiK PRI-09).
+    event ReferralStorageUpdated(address indexed oldReferralStorage, address indexed newReferralStorage);
+
+    /// @notice Emitted when the EIP-712 domain version is updated (CertiK PRI-09).
+    event Eip712DomainVersionUpdated(string oldVersion, string newVersion);
+
     // Note: Paused and Unpaused events are inherited from OpenZeppelin's Pausable
 
     /// @notice Emitted during emergency withdrawal
@@ -191,6 +197,13 @@ interface IVault {
     /// @param deadline The signature expiration timestamp
     /// @param signature The backend signature for this withdrawal
     function withdraw(uint256 amount, uint256 deadline, bytes calldata signature) external;
+
+    /// @notice CertiK PRI-12 · Withdraw the full _balances[msg.sender] in one call, bypassing
+    ///         minWithdraw. Same authorization model as withdraw(): backend signer must co-sign
+    ///         the exact balance being drained.
+    /// @param deadline The signature expiration timestamp
+    /// @param signature The backend signature covering (msg.sender, currentBalance, currentNonce, deadline)
+    function withdrawAll(uint256 deadline, bytes calldata signature) external;
 
     /// @notice Get the user's remaining principal balance from deposits
     /// @param user The address of the user

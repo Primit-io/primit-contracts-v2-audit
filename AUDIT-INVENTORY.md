@@ -466,3 +466,4 @@ cd vault_contract && forge build   # (or the relevant subdirectory)
 | Date | Change |
 |---|---|
 | 2026-07-24 | v1 · Initial audit-ready inventory |
+| 2026-08-27 | v2 · Sync 21 CertiK PRI-* preliminary fixes (baseline `d189854` on `primit-avax-contracts`). New `CERTIK-V2-FIXES.md` at repo root indexes each fix (commit / PR / file) plus a current mainnet implementation list with Snowscan-verified links. LT-migration work (PLP `settleUserPnl` · 2026-08-26 · unrelated to CertiK V2 scope) is deliberately EXCLUDED from this sync; note in `CERTIK-V2-FIXES.md §2`. |
