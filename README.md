@@ -46,7 +46,7 @@ All in-scope contracts are deployed and Snowscan-verified on Avalanche C-Chain m
 | 3 | **LiquidationManager** | Direct | [`0xceb119aa…5de1`](https://snowscan.xyz/address/0xceb119aadd56b2fe602b634d50c40af21e985de1) | — |
 | 4 | **ReferralStorage** | UUPS Proxy | [`0x8426de38…4d57`](https://snowscan.xyz/address/0x8426de38a4b7b36b04d91826e28d8d3a29394d57) | [`0x9a5ef7d0…b4607`](https://snowscan.xyz/address/0x9a5ef7d0780e2e5a698317e59f02e550da3b4607) |
 | 5 | **RebateDistributor** | UUPS Proxy | [`0x726c54c3…48a3b`](https://snowscan.xyz/address/0x726c54c38119d66e8d2b5d7339b57d8b47e48a3b) | [`0x8d9e273f…26d73`](https://snowscan.xyz/address/0x8d9e273fbe5df22e35534bc2e20aaa2714326d73) |
-| 6 | **LiquidityVault (PLP)** | UUPS Proxy | [`0xc78786e8…1ddf7`](https://snowscan.xyz/address/0xc78786e840b8179b2f3fdbf0fedf69466a51ddf7) | [`0x7a970252…d8d7`](https://snowscan.xyz/address/0x7a9702521f1dfe1c078551d0e8e8e54580ebd8d7) |
+| 6 | **LiquidityVault (PLP)** | UUPS Proxy | [`0xc78786e8…1ddf7`](https://snowscan.xyz/address/0xc78786e840b8179b2f3fdbf0fedf69466a51ddf7) | [`0x7eEC6049…B343`](https://snowscan.xyz/address/0x7eEC6049Bd502fE32eC2DE64E1f0F12d9d23B343) |
 | 7 | **BufferPool** | Direct | [`0x83710e30…d6da`](https://snowscan.xyz/address/0x83710e300ec5a77c9252be4202f818ee1428d6da) | — |
 | 8 | **shared/** (Role · RoleStore · Price · Errors) | Libraries | inlined into consumers | — |
 

@@ -55,7 +55,8 @@ Each row is the current live impl on Avalanche C-Chain (chainId 43114). Every im
 | 3 | **RebateDistributor** | `0xe2E0cF80E30f3988b2704DED5B0ED3A908083b90` | `0x30b08F944b4b0e8461b439A41bA0eC64DaDe2a9D` | [verified](https://snowscan.xyz/address/0x30b08F944b4b0e8461b439A41bA0eC64DaDe2a9D#code) | `0x7c14288f6a4fb8d4403163087efb1f5d86ad9d81cd9d762920355344a19acac6` |
 | 4 | **LiquidationManager** | (direct · non-proxy) | `0x7F74d37C7c5853cFAe133A9Db120591170C4b7F5` | [verified](https://snowscan.xyz/address/0x7F74d37C7c5853cFAe133A9Db120591170C4b7F5#code) | Deploy: `0x045394a7827174f9e49a686f0892dffd5f8a0c8f544ff8e801f2bea69af4c12e` · Vault.setLiquidationManager: `0xd9f3034edb607e96d83d72cb3f2ff95dae49f21ac26c27df48658ad4963bb773` |
 | 5 | **LiquidityVault (PLP)** — CertiK-scope impl | `0xc78786e840B8179b2F3fDBf0FEDF69466a51dDf7` | *(PRI-03 impl · superseded on 2026-08-26 by an LT-feature upgrade; see note below)* | — | — |
-| 5a | **LiquidityVault (PLP)** — current live impl | `0xc78786e840B8179b2F3fDBf0FEDF69466a51dDf7` | `0x88F7AFbbe3B34Aa33bF78Cd9c2FcAccC08d10DEe` | [verified](https://snowscan.xyz/address/0x88F7AFbbe3B34Aa33bF78Cd9c2FcAccC08d10DEe#code) | `0x7b75c7854882992cb64cae176a063254cb1a77938ef97526569d6ea85689bc85` |
+| 5a | **LiquidityVault (PLP)** — current live impl | `0xc78786e840B8179b2F3fDBf0FEDF69466a51dDf7` | `0x7eEC6049Bd502fE32eC2DE64E1f0F12d9d23B343` | [verified](https://snowscan.xyz/address/0x7eEC6049Bd502fE32eC2DE64E1f0F12d9d23B343#code) | `0x18b7ab7951956622dcccbf36c7f7c4cc35776a25f476330fd7dc64f6c56c944c` |
+| 5b | **LiquidityVault (PLP)** — previous impl (superseded 2026-09-01) | `0xc78786e840B8179b2F3fDBf0FEDF69466a51dDf7` | `0x88F7AFbbe3B34Aa33bF78Cd9c2FcAccC08d10DEe` | [verified](https://snowscan.xyz/address/0x88F7AFbbe3B34Aa33bF78Cd9c2FcAccC08d10DEe#code) | `0x7b75c7854882992cb64cae176a063254cb1a77938ef97526569d6ea85689bc85` |
 | 6 | **BufferPool** | (direct · non-proxy) | `0x83710e300ec5a77c9252be4202f818ee1428d6da` | [verified](https://snowscan.xyz/address/0x83710e300ec5a77c9252be4202f818ee1428d6da#code) | (unchanged since original deploy) |
 | 7 | **shared/** (libraries · RoleStore / Role / Price / Errors) | (linked · no proxy) | (embedded in dependents) | — | — |
 
@@ -69,17 +70,33 @@ If CertiK wants byte-for-byte review of the on-chain impl, the additional surfac
 
 ## 5 · PRI-05 status (as of 2026-09-01)
 
-**Source (this repo):** contains the `unpause()` fix — see Fix Index row above — with three TDD tests. LiquidityVault suite: 55/55 green (including the 3 new PRI-05 tests).
+**Status: DEPLOYED — source and mainnet both contain the `unpause()` fix.**
 
-**Mainnet:** upgrade pending. The current live PLP impl is `0x88F7AFbbe3B34Aa33bF78Cd9c2FcAccC08d10DEe` (behind proxy `0xc78786e840B8179b2F3fDBf0FEDF69466a51dDf7`); it does not yet contain the `unpause()` selector (`0x3f4ba83a`).
+### Source
 
-**Next steps:**
-1. Build a new PLP impl containing this PRI-05 fix plus the existing `settleUserPnl` LT surface (no regression of the LT feature).
-2. UUPS `upgradeToAndCall` the PLP proxy; verify new impl bytecode carries the `unpause()` selector.
-3. Update this section with the new impl address, Snowscan link, and upgrade tx.
-4. Submit revised alleviation to CertiK for **Pending → Resolved** transition.
+`plp_contract/src/LiquidityVault.sol` has the symmetric `unpause() external onlyRole(ADMIN_ROLE)` (see Fix Index row above). LiquidityVault test suite: **55/55 green** (3 new PRI-05 tests: admin unpause · non-admin revert · pause→unpause→deposit E2E).
 
-The PLP proxy address remains stable at `0xc78786e840B8179b2F3fDBf0FEDF69466a51dDf7` across all impl upgrades — user-facing address does not change.
+### Mainnet (Avalanche C-Chain · 43114)
+
+Landed 2026-09-01 via UUPS upgrade. Proxy address unchanged (`0xc78786e840B8179b2F3fDBf0FEDF69466a51dDf7`) — user-facing address is stable across all impl upgrades.
+
+| Item | Value |
+|---|---|
+| PLP Proxy | `0xc78786e840B8179b2F3fDBf0FEDF69466a51dDf7` |
+| **New impl** | `0x7eEC6049Bd502fE32eC2DE64E1f0F12d9d23B343` ([Snowscan · verified](https://snowscan.xyz/address/0x7eEC6049Bd502fE32eC2DE64E1f0F12d9d23B343#code)) |
+| Previous impl (superseded) | `0x88F7AFbbe3B34Aa33bF78Cd9c2FcAccC08d10DEe` |
+| Deploy tx (new impl) | [`0x393f6938…4bea`](https://snowscan.xyz/tx/0x393f6938259f7056599483303aae1d40dcd62cb9133f55ff136865b46a884bea) |
+| UUPS upgrade tx | [`0x18b7ab79…944c`](https://snowscan.xyz/tx/0x18b7ab7951956622dcccbf36c7f7c4cc35776a25f476330fd7dc64f6c56c944c) |
+
+### On-chain verification (post-upgrade)
+
+- ERC1967 impl slot on proxy points at `0x7eEC6049…B343` ✅
+- `eth_getCode(new impl)` grep · unpause selector `0x3f4ba83a` count = **1** ✅ (PRI-05 landed)
+- `eth_getCode(new impl)` grep · pause selector `0x8456cb59` count = **1** ✅ (preserved)
+- Bytecode size · new 20502 chars vs old 20242 chars (+260 for the added `unpause()` function · no regression)
+- New impl carries both the PRI-05 unpause and the pre-existing `settleUserPnl` LT surface (source built from the same `LiquidityVault.sol` that contains both) — no LT feature regression
+
+Fix summary now ready for CertiK review: **Pending → Resolved** requested. Alleviation update will reference the addresses and tx hashes in this section.
 
 ---
 
