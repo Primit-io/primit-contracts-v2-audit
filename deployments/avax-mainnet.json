@@ -61,7 +61,11 @@
     "LiquidityVault_PLP": {
       "type": "UUPS Proxy",
       "proxy": "0xc78786e840b8179b2f3fdbf0fedf69466a51ddf7",
-      "impl": "0x7a9702521f1dfe1c078551d0e8e8e54580ebd8d7",
+      "impl": "0x7eec6049bd502fe32ec2de64e1f0f12d9d23b343",
+      "implPrevious": [
+        "0x88F7AFbbe3B34Aa33bF78Cd9c2FcAccC08d10DEe",
+        "0x7a9702521f1dfe1c078551d0e8e8e54580ebd8d7"
+      ],
       "verified": true,
       "source": "plp_contract/src/LiquidityVault.sol",
       "eip712": { "name": "PrimitLiquidityProvider", "version": "1" },
