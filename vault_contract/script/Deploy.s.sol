@@ -28,7 +28,23 @@ contract DeployVaultSepolia is Script {
         Vault implementation = new Vault();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
-            abi.encodeCall(Vault.initialize, (usdc, backendSigner, referralStorage, domainName, domainVersion, admin))
+            abi.encodeCall(
+                Vault.initialize,
+                (Vault.InitParams({
+                    usdc: usdc,
+                    backendSigner: backendSigner,
+                    referralStorage: referralStorage,
+                    domainName: domainName,
+                    domainVersion: domainVersion,
+                    owner: admin,
+                    // PRI-11 · required for fresh deploy — set via env or override before broadcast
+                    plpVault: vm.envOr("PLP_VAULT_ADDRESS", address(0xDEAD1)),
+                    liquidationManager: vm.envOr("LIQUIDATION_MANAGER_ADDRESS", address(0xDEAD2)),
+                    protocolFeeRecipient: vm.envOr("PROTOCOL_FEE_RECIPIENT", address(0xDEAD3)),
+                    dailySettlementCreditCap: vm.envOr("DAILY_SETTLEMENT_CREDIT_CAP", uint256(0)),
+                    dailyUserSettlementCreditCap: vm.envOr("DAILY_USER_SETTLEMENT_CREDIT_CAP", uint256(0))
+                }))
+            )
         );
         vault = Vault(address(proxy));
         vm.stopBroadcast();
@@ -61,7 +77,23 @@ contract DeployVaultMainnet is Script {
         Vault implementation = new Vault();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
-            abi.encodeCall(Vault.initialize, (usdc, backendSigner, referralStorage, domainName, domainVersion, admin))
+            abi.encodeCall(
+                Vault.initialize,
+                (Vault.InitParams({
+                    usdc: usdc,
+                    backendSigner: backendSigner,
+                    referralStorage: referralStorage,
+                    domainName: domainName,
+                    domainVersion: domainVersion,
+                    owner: admin,
+                    // PRI-11 · required for fresh deploy — set via env or override before broadcast
+                    plpVault: vm.envOr("PLP_VAULT_ADDRESS", address(0xDEAD1)),
+                    liquidationManager: vm.envOr("LIQUIDATION_MANAGER_ADDRESS", address(0xDEAD2)),
+                    protocolFeeRecipient: vm.envOr("PROTOCOL_FEE_RECIPIENT", address(0xDEAD3)),
+                    dailySettlementCreditCap: vm.envOr("DAILY_SETTLEMENT_CREDIT_CAP", uint256(0)),
+                    dailyUserSettlementCreditCap: vm.envOr("DAILY_USER_SETTLEMENT_CREDIT_CAP", uint256(0))
+                }))
+            )
         );
         vault = Vault(address(proxy));
         vm.stopBroadcast();

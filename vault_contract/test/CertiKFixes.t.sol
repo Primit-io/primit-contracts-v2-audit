@@ -24,7 +24,19 @@ contract CertiKFixesVaultTest is Test {
         Vault impl = new Vault();
         bytes memory initData = abi.encodeCall(
             Vault.initialize,
-            (address(usdc), backendSigner, referral, "Primit Vault AVAX", "1.0.0", admin)
+            (Vault.InitParams({
+                usdc: address(usdc),
+                backendSigner: backendSigner,
+                referralStorage: referral,
+                domainName: "Primit Vault AVAX",
+                domainVersion: "1.0.0",
+                owner: admin,
+                plpVault: address(0xDEAD1),
+                liquidationManager: address(0xDEAD2),
+                protocolFeeRecipient: address(0xDEAD3),
+                dailySettlementCreditCap: 0,
+                dailyUserSettlementCreditCap: 0
+            }))
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         vault = Vault(address(proxy));
@@ -165,5 +177,102 @@ contract CertiKFixesVaultTest is Test {
         vm.expectRevert();
         vm.prank(address(0xBAD));
         vault.setMaxProtocolFeeAmount(1_000_000e6);
+    }
+
+    // ================================================================
+    // PRI-11 · Complete initialize · fresh deploy sets every state var
+    //   in one call · no reinitializer chain required
+    // ================================================================
+
+    /// @notice initialize populates all five PRI-11 state variables.
+    function test_PRI11_initialize_sets_all_pri11_state_vars() public view {
+        // setUp initializes with plpVault=0xDEAD1, liq=0xDEAD2, feeRecipient=0xDEAD3,
+        // and caps = 0 (allowed).
+        assertEq(vault.plpVaultAddress(), address(0xDEAD1), "plpVaultAddress");
+        assertEq(vault.liquidationManager(), address(0xDEAD2), "liquidationManager");
+        assertEq(vault.protocolFeeRecipient(), address(0xDEAD3), "protocolFeeRecipient");
+        assertEq(vault.dailySettlementCreditCap(), 0, "dailySettlementCreditCap");
+        assertEq(vault.dailyUserSettlementCreditCap(), 0, "dailyUserSettlementCreditCap");
+    }
+
+    /// @notice initialize reverts when plpVault is the zero address (required).
+    function test_PRI11_initialize_reverts_when_plpVault_zero() public {
+        Vault fresh = new Vault();
+        bytes memory initData = abi.encodeCall(
+            Vault.initialize,
+            (_freshInitParams(address(0), address(0xDEAD2), address(0xDEAD3)))
+        );
+        vm.expectRevert(Vault.ZeroAddress.selector);
+        new ERC1967Proxy(address(fresh), initData);
+    }
+
+    /// @notice initialize reverts when liquidationManager is the zero address (required).
+    function test_PRI11_initialize_reverts_when_liquidationManager_zero() public {
+        Vault fresh = new Vault();
+        bytes memory initData = abi.encodeCall(
+            Vault.initialize,
+            (_freshInitParams(address(0xDEAD1), address(0), address(0xDEAD3)))
+        );
+        vm.expectRevert(Vault.ZeroAddress.selector);
+        new ERC1967Proxy(address(fresh), initData);
+    }
+
+    /// @notice initialize reverts when protocolFeeRecipient is the zero address (required).
+    function test_PRI11_initialize_reverts_when_protocolFeeRecipient_zero() public {
+        Vault fresh = new Vault();
+        bytes memory initData = abi.encodeCall(
+            Vault.initialize,
+            (_freshInitParams(address(0xDEAD1), address(0xDEAD2), address(0)))
+        );
+        vm.expectRevert(Vault.ZeroAddress.selector);
+        new ERC1967Proxy(address(fresh), initData);
+    }
+
+    /// @notice Caps of zero are allowed at deploy time; admin sets them later
+    ///         via setDailySettlementCreditCap / setDailyUserSettlementCreditCap.
+    function test_PRI11_initialize_allows_zero_caps() public {
+        Vault fresh = new Vault();
+        bytes memory initData = abi.encodeCall(
+            Vault.initialize,
+            (Vault.InitParams({
+                usdc: address(usdc),
+                backendSigner: backendSigner,
+                referralStorage: referral,
+                domainName: "Primit Vault AVAX",
+                domainVersion: "1.0.0",
+                owner: admin,
+                plpVault: address(0xDEAD1),
+                liquidationManager: address(0xDEAD2),
+                protocolFeeRecipient: address(0xDEAD3),
+                dailySettlementCreditCap: 0,
+                dailyUserSettlementCreditCap: 0
+            }))
+        );
+        ERC1967Proxy p = new ERC1967Proxy(address(fresh), initData);
+        Vault v = Vault(address(p));
+        assertEq(v.dailySettlementCreditCap(), 0);
+        assertEq(v.dailyUserSettlementCreditCap(), 0);
+    }
+
+    // ---- helper -------------------------------------------------------
+
+    function _freshInitParams(address plp, address liq, address fee)
+        internal
+        view
+        returns (Vault.InitParams memory)
+    {
+        return Vault.InitParams({
+            usdc: address(usdc),
+            backendSigner: backendSigner,
+            referralStorage: referral,
+            domainName: "Primit Vault AVAX",
+            domainVersion: "1.0.0",
+            owner: admin,
+            plpVault: plp,
+            liquidationManager: liq,
+            protocolFeeRecipient: fee,
+            dailySettlementCreditCap: 0,
+            dailyUserSettlementCreditCap: 0
+        });
     }
 }

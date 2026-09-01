@@ -194,7 +194,20 @@ contract DeployVaultAvax is Script {
             address(implementation),
             abi.encodeCall(
                 Vault.initialize,
-                (usdc, backendSigner, referralStorage, domainName, domainVersion, initialOwner)
+                (Vault.InitParams({
+                    usdc: usdc,
+                    backendSigner: backendSigner,
+                    referralStorage: referralStorage,
+                    domainName: domainName,
+                    domainVersion: domainVersion,
+                    owner: initialOwner,
+                    // PRI-11 · required for fresh deploy — set via env or override before broadcast
+                    plpVault: vm.envOr("PLP_VAULT_ADDRESS", address(0xDEAD1)),
+                    liquidationManager: vm.envOr("LIQUIDATION_MANAGER_ADDRESS", address(0xDEAD2)),
+                    protocolFeeRecipient: vm.envOr("PROTOCOL_FEE_RECIPIENT", address(0xDEAD3)),
+                    dailySettlementCreditCap: vm.envOr("DAILY_SETTLEMENT_CREDIT_CAP", uint256(0)),
+                    dailyUserSettlementCreditCap: vm.envOr("DAILY_USER_SETTLEMENT_CREDIT_CAP", uint256(0))
+                }))
             )
         );
         vault = Vault(address(proxy));

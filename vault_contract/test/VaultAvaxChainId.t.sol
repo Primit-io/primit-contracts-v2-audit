@@ -38,7 +38,19 @@ contract VaultAvaxChainIdTest is Test {
         Vault impl = new Vault();
         bytes memory initData = abi.encodeCall(
             Vault.initialize,
-            (address(token), backendSigner, referralStorage, domainName, "1.0.0", admin)
+            (Vault.InitParams({
+                usdc: address(token),
+                backendSigner: backendSigner,
+                referralStorage: referralStorage,
+                domainName: domainName,
+                domainVersion: "1.0.0",
+                owner: admin,
+                plpVault: address(0xDEAD1),
+                liquidationManager: address(0xDEAD2),
+                protocolFeeRecipient: address(0xDEAD3),
+                dailySettlementCreditCap: 0,
+                dailyUserSettlementCreditCap: 0
+            }))
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         Vault v = Vault(address(proxy));
@@ -82,7 +94,19 @@ contract VaultAvaxChainIdTest is Test {
         Vault impl = new Vault();
         bytes memory initData = abi.encodeCall(
             Vault.initialize,
-            (address(token), backendSigner, referralStorage, "Primit Vault AVAX", "1.0.0", admin)
+            (Vault.InitParams({
+                usdc: address(token),
+                backendSigner: backendSigner,
+                referralStorage: referralStorage,
+                domainName: "Primit Vault AVAX",
+                domainVersion: "1.0.0",
+                owner: admin,
+                plpVault: address(0xDEAD1),
+                liquidationManager: address(0xDEAD2),
+                protocolFeeRecipient: address(0xDEAD3),
+                dailySettlementCreditCap: 0,
+                dailyUserSettlementCreditCap: 0
+            }))
         );
         Vault v = Vault(address(new ERC1967Proxy(address(impl), initData)));
 
@@ -101,7 +125,19 @@ contract VaultAvaxChainIdTest is Test {
         Vault impl = new Vault();
         bytes memory initData = abi.encodeCall(
             Vault.initialize,
-            (address(token), backendSigner, referralStorage, "Primit Vault AVAX", "1.0.0", admin)
+            (Vault.InitParams({
+                usdc: address(token),
+                backendSigner: backendSigner,
+                referralStorage: referralStorage,
+                domainName: "Primit Vault AVAX",
+                domainVersion: "1.0.0",
+                owner: admin,
+                plpVault: address(0xDEAD1),
+                liquidationManager: address(0xDEAD2),
+                protocolFeeRecipient: address(0xDEAD3),
+                dailySettlementCreditCap: 0,
+                dailyUserSettlementCreditCap: 0
+            }))
         );
         Vault v = Vault(address(new ERC1967Proxy(address(impl), initData)));
 

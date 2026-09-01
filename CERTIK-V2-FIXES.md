@@ -23,7 +23,8 @@ Each row: PRI-ID → fix commit → file(s) touched → nature. Rows 1-21 landed
 | PRI-08 (script) | `4035a24` | #10 | `referral_storage_contract/script/UpgradeReferralStorageAvax.s.sol` | ReferralStorage UUPS upgrade script |
 | PRI-09 (script) | `86dfb44` | #11 | `rebate_contract/script/UpgradeRebateDistributorAvax.s.sol` | RebateDistributor UUPS upgrade script |
 | PRI-10 | `3aa59ed` | #12 | `plp_contract/src/LiquidityVault.sol` | reject zero-address role holders in `initialize` |
-| PRI-11 | `30c1962` | #14 | `vault_contract/src/contracts/core/vault/Vault.sol` | owner-gated `setPlpVaultAddress` (rotate-friendly setter) |
+| PRI-11 (v1) | `30c1962` | #14 | `vault_contract/src/contracts/core/vault/Vault.sol` | owner-gated `setPlpVaultAddress` (rotate-friendly setter · superseded — see PRI-11 (v2) below) |
+| **PRI-11 (v2)** | `5184ee6` | primit-avax-contracts#33 | `vault_contract/src/contracts/core/vault/Vault.sol` · 9 test files · 3 deploy scripts | **complete initialize** · `initialize(InitParams)` sets all 5 previously-missing state variables (`plpVault` · `liquidationManager` · `protocolFeeRecipient` · `dailySettlementCreditCap` · `dailyUserSettlementCreditCap`) in one call per CertiK 08-28 request. `reinitializer(3/4/5)` and `setPlpVaultAddress` retained for legacy proxies and admin rotation. See §6 below for deploy state. |
 | PRI-12 | `d1cbc0a` | #15 | `vault_contract/src/contracts/core/vault/Vault.sol` | add `withdrawAll` for dust escape |
 | PRI-13 | `eb55ee3` | #16 | `vault_contract/src/contracts/core/vault/Vault.sol` | reject non-future `expiresAt` in `permitCloseOperator` |
 | PRI-14 | `6ef312a` | #17 | `vault_contract/src/contracts/core/vault/Vault.sol` | remove stale `PositionBalanceSettled` emit on replay |
@@ -98,6 +99,64 @@ Landed 2026-09-01 via UUPS upgrade. Proxy address unchanged (`0xc78786e840B8179b
 - New impl carries both the PRI-05 unpause and the pre-existing `settleUserPnl` LT surface (source built from the same `LiquidityVault.sol` that contains both) — no LT feature regression
 
 Fix summary now ready for CertiK review: **Pending → Resolved** requested. Alleviation update will reference the addresses and tx hashes in this section.
+
+---
+
+## 6 · PRI-11 status (as of 2026-09-01)
+
+**Status: source landed. Mainnet upgrade optional.**
+
+Per CertiK's 08-28 note, the expected fix is to add complete initialization logic to `initialize()` (so fresh deployments do not require a `reinitializer` chain). The v1 fix (owner-gated `setPlpVaultAddress`, PR #14) did not satisfy that expectation. The v2 fix (PR primit-avax-contracts#33 · commit `5184ee6`) implements it directly.
+
+### Source
+
+`vault_contract/src/contracts/core/vault/Vault.sol` now exposes:
+
+```solidity
+struct InitParams {
+    address usdc;
+    address backendSigner;
+    address referralStorage;
+    string  domainName;
+    string  domainVersion;
+    address owner;
+    // PRI-11 additions:
+    address plpVault;                    // required · non-zero
+    address liquidationManager;          // required · non-zero
+    address protocolFeeRecipient;        // required · non-zero
+    uint256 dailySettlementCreditCap;    // may be 0 · admin sets later
+    uint256 dailyUserSettlementCreditCap; // may be 0 · admin sets later
+}
+
+function initialize(InitParams memory p) external initializer { ... }
+```
+
+Vault test suite: **118/118 passing** (`forge test`), including 5 new PRI-11 tests in `test/CertiKFixes.t.sol`:
+
+- `test_PRI11_initialize_sets_all_pri11_state_vars`
+- `test_PRI11_initialize_reverts_when_plpVault_zero`
+- `test_PRI11_initialize_reverts_when_liquidationManager_zero`
+- `test_PRI11_initialize_reverts_when_protocolFeeRecipient_zero`
+- `test_PRI11_initialize_allows_zero_caps`
+
+The struct is used so `initialize` fits under Solc's stack-depth limit without turning on `via_ir` (which would change bytecode across every existing verified deployment).
+
+### Retained (not removed)
+
+Per CertiK 08-28 · "reinitialize can still be used for upgrade-time reinitialization":
+
+- `reinitializer(3)` — `reinitializeSettlementCaps`
+- `reinitializer(4)` — `reinitializeProtocolFees`
+- `reinitializer(5)` — `reinitializeAddPLPAddress`
+- `setPlpVaultAddress` — v1 rotate-friendly setter, still useful for admin rotation
+
+### Mainnet
+
+Current live Vault impl `0xfb4f9916a2bb07fb83d81a49221ea5ed63bc4889` (behind proxy `0x0A30176bba21d262cDc652814b8C2A4c9a397b1b`) still carries the old 6-parameter `initialize`. **PRI-11 does not require a mainnet upgrade to be considered fixed** — the finding is about *source* initialization completeness for future fresh deployments, and the current live proxy is already `_initialized == 5` with every required state variable populated via the v1 setter path.
+
+A mainnet upgrade to the new impl is nevertheless a nice-to-have so that Snowscan's `initialize` signature matches this repo's source. If done, it uses `upgradeToAndCall(newImpl, "")` (empty init data because the proxy cannot re-initialize) and does not touch stored state.
+
+This section will be updated with the new impl address + upgrade tx if/when that upgrade lands.
 
 ---
 

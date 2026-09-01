@@ -30,18 +30,36 @@ contract VaultPLPAuthorizationTest is Test {
         usdc = new ERC20Mock();
         Vault impl = new Vault();
         bytes memory initData = abi.encodeCall(
-            Vault.initialize, (address(usdc), backendSigner, referralStorage, "Primit Vault AVAX Fuji", "1.0.0", admin)
+            Vault.initialize,
+            (Vault.InitParams({
+                usdc: address(usdc),
+                backendSigner: backendSigner,
+                referralStorage: referralStorage,
+                domainName: "Primit Vault AVAX Fuji",
+                domainVersion: "1.0.0",
+                owner: admin,
+                plpVault: address(0xDEAD1),
+                liquidationManager: address(0xDEAD2),
+                protocolFeeRecipient: address(0xDEAD3),
+                dailySettlementCreditCap: 0,
+                dailyUserSettlementCreditCap: 0
+            }))
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         vault = Vault(address(proxy));
     }
 
     // ================================================================
-    // 🔴 RED #58: 未升级时 plpVaultAddress 默认为 0
+    // 🔴 RED #58 (superseded by PRI-11): initialize now sets plpVaultAddress
+    //   directly; the historical "default zero before upgrade" contract has
+    //   been replaced by "initialize takes plpVault as a required argument".
+    //   reinitializeAddPLPAddress(reinitializer(5)) still exists for legacy
+    //   proxies that walked through it before this change.
     // ================================================================
 
-    function test_plpVaultAddress_defaults_to_zero_before_upgrade() public {
-        assertEq(vault.plpVaultAddress(), address(0));
+    function test_PRI11_plpVaultAddress_set_by_initialize() public {
+        // setUp deployed the proxy via initialize with plpVault = 0xDEAD1.
+        assertEq(vault.plpVaultAddress(), address(0xDEAD1));
     }
 
     // ================================================================
