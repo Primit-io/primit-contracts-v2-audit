@@ -224,6 +224,14 @@ contract LiquidityVault is
         _pause();
     }
 
+    /// @notice 解除暂停(PRI-05)· 对称于 pause · 避免 permanently-pausable-only
+    /// @dev    Same ADMIN_ROLE gate as pause · restores standard OZ Pausable
+    ///         ergonomics for the incident-response cycle · so once ADMIN pauses
+    ///         deposit/withdraw the same role can re-open without a UUPS upgrade.
+    function unpause() external onlyRole(ADMIN_ROLE) {
+        _unpause();
+    }
+
     /// @notice EIP-712 domain separator(D-PT-28,前端签名校验用)
     function DOMAIN_SEPARATOR() external view returns (bytes32) {
         return _domainSeparatorV4();
