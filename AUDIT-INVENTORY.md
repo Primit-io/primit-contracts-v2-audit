@@ -5,7 +5,7 @@
 > **Chain**:Avalanche C-Chain mainnet(chainId `43114`)
 > **Stablecoin**:USDC only(Circle native · `0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E`)
 > **Deployment**:2026-07-24 12:30 UTC · all contracts deployed and Snowscan-verified
-> **Contact**:Lee(`lee@zanbarax.com`)· sole engineering owner
+> **Contact**:Lee(`tech@primit.io`)· sole engineering owner
 
 ---
 
@@ -458,7 +458,7 @@ cd vault_contract && forge build   # (or the relevant subdirectory)
 
 ## 11 · Contact
 
-**Engineering lead**:Lee(`lee@zanbarax.com`)  
+**Engineering lead**:Lee(`tech@primit.io`)  
 **Response SLA target**:24 hours for clarifying questions during audit
 
 ## 12 · Changelog

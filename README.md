@@ -155,7 +155,7 @@ Full "please verify" checklists per contract in [AUDIT-INVENTORY.md](./AUDIT-INV
 
 ## Contact
 
-**Engineering lead** · Lee (`lee@zanbarax.com`)  
+**Engineering lead** · Lee (`tech@primit.io`)  
 **Response SLA target** · 24 hours for clarifying questions during audit  
 **Full source repository (private, for reference on request)** · `github.com/Primit-io/primit-avax-contracts`
 

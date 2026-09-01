@@ -84,5 +84,5 @@ Compiler settings are pinned in each dir's `foundry.toml` — Solidity `0.8.20` 
 
 ## 4 · Contact
 
-**Engineering lead**: Lee (`lee@zanbarax.com`)
+**Engineering lead**: Lee (`tech@primit.io`)
 For any clarification on a specific PRI-* fix or a request to look at the LT settlement path separately, please ping directly.
