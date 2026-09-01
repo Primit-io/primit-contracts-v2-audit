@@ -179,41 +179,65 @@ contract Vault is
         _disableInitializers();
     }
 
+    /// @notice CertiK PRI-11 (Complete initialize) parameter bundle.
+    /// @dev    Packed into a struct so `initialize` fits under Solc's
+    ///         stack-depth limit without turning on `via_ir` (which would
+    ///         change bytecode across every existing verified deployment).
+    ///         Order matches the historical initialize(...) tuple, with
+    ///         PRI-11 additions appended.
+    struct InitParams {
+        address usdc;
+        address backendSigner;
+        address referralStorage;
+        string  domainName;
+        string  domainVersion;
+        address owner;
+        // ========== PRI-11 (Complete initialize) ==========
+        address plpVault;
+        address liquidationManager;
+        address protocolFeeRecipient;
+        uint256 dailySettlementCreditCap;
+        uint256 dailyUserSettlementCreditCap;
+    }
+
     /**
      * @notice Initialize the vault
-     * @param _usdc USDC token address
-     * @param _backendSigner Backend signer address for withdrawal authorization
-     * @param _referralStorage Referral storage contract address (can be zero)
-     * @param _domainName EIP-712 domain name, should come from backend env
-     * @param _domainVersion EIP-712 domain version, should come from backend env
-     * @param _owner Owner address with upgrade authority
+     * @dev    CertiK PRI-11 (Complete initialize): fresh deployments now set every
+     *         required state variable in one call — no need to burn reinitializer
+     *         slots 3/4/5 just to finish setup. The reinitializer(3/4/5) functions
+     *         are kept for legacy proxies that walked through them before this
+     *         change, and for future upgrade-time reinitialization.
+     * @param p Bundle of initialization parameters (see `InitParams`).
+     *          Required non-zero addresses: usdc, backendSigner, owner,
+     *          plpVault, liquidationManager, protocolFeeRecipient.
+     *          `referralStorage` may be zero (optional).
+     *          Caps may be zero and set later via
+     *          setDailySettlementCreditCap / setDailyUserSettlementCreditCap
+     *          (or the legacy reinitializeSettlementCaps path).
      */
-    function initialize(
-        address _usdc,
-        address _backendSigner,
-        address _referralStorage,
-        string memory _domainName,
-        string memory _domainVersion,
-        address _owner
-    ) external initializer {
+    function initialize(InitParams memory p) external initializer {
         __ReentrancyGuard_init();
         __Pausable_init();
-        __Ownable_init(_owner);
+        __Ownable_init(p.owner);
         __UUPSUpgradeable_init();
 
-        if (_usdc == address(0)) revert ZeroAddress();
-        if (_backendSigner == address(0)) revert ZeroAddress();
-        if (_owner == address(0)) revert ZeroAddress();
-        if (bytes(_domainName).length == 0) revert EmptyDomainName();
-        if (bytes(_domainVersion).length == 0) revert EmptyDomainVersion();
+        if (p.usdc == address(0)) revert ZeroAddress();
+        if (p.backendSigner == address(0)) revert ZeroAddress();
+        if (p.owner == address(0)) revert ZeroAddress();
+        if (bytes(p.domainName).length == 0) revert EmptyDomainName();
+        if (bytes(p.domainVersion).length == 0) revert EmptyDomainVersion();
+        // PRI-11 · required addresses
+        if (p.plpVault == address(0)) revert ZeroAddress();
+        if (p.liquidationManager == address(0)) revert ZeroAddress();
+        if (p.protocolFeeRecipient == address(0)) revert ZeroAddress();
 
-        usdc = IERC20Metadata(_usdc);
-        backendSigner = _backendSigner;
-        NAME = _domainName;
-        VERSION = _domainVersion;
+        usdc = IERC20Metadata(p.usdc);
+        backendSigner = p.backendSigner;
+        NAME = p.domainName;
+        VERSION = p.domainVersion;
 
-        if (_referralStorage != address(0)) {
-            referralStorage = IReferralStorage(_referralStorage);
+        if (p.referralStorage != address(0)) {
+            referralStorage = IReferralStorage(p.referralStorage);
         }
 
         // Set default minimums (1 token unit in the token's decimals)
@@ -223,6 +247,19 @@ contract Vault is
 
         // Compute EIP-712 domain separator
         DOMAIN_SEPARATOR = SignatureVerifier.computeDomainSeparator(NAME, VERSION, block.chainid, address(this));
+
+        // ========== PRI-11 · Complete-init assignments ==========
+        plpVaultAddress = p.plpVault;
+        emit PLPAddressSet(p.plpVault);
+
+        liquidationManager = p.liquidationManager;
+        protocolFeeRecipient = p.protocolFeeRecipient;
+
+        // Caps may be zero at deploy time and set later via
+        // setDailySettlementCreditCap / setDailyUserSettlementCreditCap
+        // (or the historical reinitializeSettlementCaps for legacy proxies).
+        dailySettlementCreditCap = p.dailySettlementCreditCap;
+        dailyUserSettlementCreditCap = p.dailyUserSettlementCreditCap;
     }
 
     /**

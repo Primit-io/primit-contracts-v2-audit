@@ -89,7 +89,20 @@ contract VaultCloseOperatorPermitTest is Test {
         usdc = new ERC20Mock();
         Vault impl = new Vault();
         bytes memory initData = abi.encodeCall(
-            Vault.initialize, (address(usdc), backendSigner, referralStorage, "Primit Vault AVAX Fuji", "1.0.0", admin)
+            Vault.initialize,
+            (Vault.InitParams({
+                usdc: address(usdc),
+                backendSigner: backendSigner,
+                referralStorage: referralStorage,
+                domainName: "Primit Vault AVAX Fuji",
+                domainVersion: "1.0.0",
+                owner: admin,
+                plpVault: address(0xDEAD1),
+                liquidationManager: address(0xDEAD2),
+                protocolFeeRecipient: address(0xDEAD3),
+                dailySettlementCreditCap: 0,
+                dailyUserSettlementCreditCap: 0
+            }))
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         vault = Vault(address(proxy));
