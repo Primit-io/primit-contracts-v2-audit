@@ -7,15 +7,16 @@
 
 ---
 
-## 1 · Fix Index (21 CertiK PRI-* findings addressed)
+## 1 · Fix Index (22 CertiK PRI-* findings addressed)
 
-Each row: PRI-ID → fix commit (on `v2/certik-preliminary-fixes` branch, all merged into `main` via PR #28) → file(s) touched → nature.
+Each row: PRI-ID → fix commit → file(s) touched → nature. Rows 1-21 landed on the `v2/certik-preliminary-fixes` branch merged into `main` via PR #28 (baseline `d189854`). PRI-05 landed later — see the note in row 4 below.
 
 | PRI | Commit | PR | File(s) | Nature |
 |---|---|---|---|---|
 | PRI-03 | `0cb3db8` | #4 | `plp_contract/src/LiquidityVault.sol` | fix · call `_disableInitializers()` in constructor to lock raw implementation |
 | PRI-03 (script) | `75b8782` | #5 | `plp_contract/script/UpgradePlpImplAvax.s.sol` | UUPS upgrade script for PRI-03 |
 | PRI-04 | `8cadfd7` | #6 | `vault_contract/src/contracts/core/vault/Vault.sol` (docs) | clarify `recordPositionClose` is audit-event only (no state change) |
+| **PRI-05** | `58376fc` | primit-avax-contracts#32 | `plp_contract/src/LiquidityVault.sol` · `plp_contract/test/LiquidityVault.t.sol` | fix · add symmetric `unpause()` external onlyRole(ADMIN_ROLE) · 3 new TDD tests(admin unpause · non-admin revert · pause→unpause→deposit E2E). See §5 "PRI-05 deploy state" below — this fix has not yet been deployed to mainnet at time of sync; the audit repo source now matches the intended fix, mainnet upgrade is scheduled next. |
 | PRI-06 | `ed36a8e` | #8 | `vault_contract/src/contracts/core/vault/Vault.sol` | add `onlyOwner` to `reinitializeSettlementCaps` |
 | PRI-06 + PRI-10 (script) | `4cf148a` | #13 | `vault_contract/script/UpgradeVaultCertikBatchAvax.s.sol` | Vault UUPS batch upgrade for PRI-06 + PRI-10 |
 | PRI-07 | `4c74fd2` | #9 | `vault_contract/src/contracts/core/liquidation/LiquidationManager.sol` | cap debit to position-scoped obligation |
@@ -63,6 +64,22 @@ Each row is the current live impl on Avalanche C-Chain (chainId 43114). Every im
 The current live impl `0x88F7AF…10DEe` (row 5a) contains **both** the CertiK PRI-03 fix (`_disableInitializers`) **and** a new `settleUserPnl(user, delta, nonce, deadline, sig)` function that was added on 2026-08-26 for the LiquidityTech backend integration (unrelated to CertiK V2 findings). This audit repo's `plp_contract/src/LiquidityVault.sol` reflects the **PRI-03 baseline only** (no `settleUserPnl`), matching what CertiK's V2 review covers.
 
 If CertiK wants byte-for-byte review of the on-chain impl, the additional surface in `0x88F7AF…10DEe` beyond this repo's source is a single new external function (~30 LOC) plus its typehash + role constant + event + error. Full spec: `DESIGN-2026-0825-002-LT-Settlement-Contract-Signer-Path.md` in the `internal-docs` repo (available on request). This LT-scope surface is scheduled for its own audit pass separately from V2.
+
+---
+
+## 5 · PRI-05 status (as of 2026-09-01)
+
+**Source (this repo):** contains the `unpause()` fix — see Fix Index row above — with three TDD tests. LiquidityVault suite: 55/55 green (including the 3 new PRI-05 tests).
+
+**Mainnet:** upgrade pending. The current live PLP impl is `0x88F7AFbbe3B34Aa33bF78Cd9c2FcAccC08d10DEe` (behind proxy `0xc78786e840B8179b2F3fDBf0FEDF69466a51dDf7`); it does not yet contain the `unpause()` selector (`0x3f4ba83a`).
+
+**Next steps:**
+1. Build a new PLP impl containing this PRI-05 fix plus the existing `settleUserPnl` LT surface (no regression of the LT feature).
+2. UUPS `upgradeToAndCall` the PLP proxy; verify new impl bytecode carries the `unpause()` selector.
+3. Update this section with the new impl address, Snowscan link, and upgrade tx.
+4. Submit revised alleviation to CertiK for **Pending → Resolved** transition.
+
+The PLP proxy address remains stable at `0xc78786e840B8179b2F3fDBf0FEDF69466a51dDf7` across all impl upgrades — user-facing address does not change.
 
 ---
 

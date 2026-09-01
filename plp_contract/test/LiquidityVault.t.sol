@@ -397,6 +397,86 @@ contract LiquidityVaultTest is Test {
     }
 
     // ================================================================
+    // 🔴 PRI-05 RED #A: ADMIN calls unpause() · paused() flips back to false
+    // ================================================================
+
+    function test_admin_unpause_clears_paused_state() public {
+        LiquidityVault plp = _deployPlpDefault();
+
+        // pre · not paused; ADMIN pauses first
+        assertFalse(plp.paused());
+        vm.prank(ADMIN);
+        plp.pause();
+        assertTrue(plp.paused());
+
+        // ADMIN unpauses · state flips back
+        vm.prank(ADMIN);
+        plp.unpause();
+        assertFalse(plp.paused());
+    }
+
+    // ================================================================
+    // 🔴 PRI-05 RED #B: unpause() reverts when caller lacks ADMIN_ROLE
+    // ================================================================
+
+    function test_unpause_reverts_when_non_admin() public {
+        LiquidityVault plp = _deployPlpDefault();
+
+        // pause first (so unpause is the operative gate being tested)
+        vm.prank(ADMIN);
+        plp.pause();
+
+        // Cache role value BEFORE vm.prank so the ADMIN_ROLE() view call
+        // doesn't consume the single-shot prank (vm.prank applies to the
+        // next external call · not the next transaction).
+        bytes32 adminRole = plp.ADMIN_ROLE();
+
+        // Random caller · AccessControl reverts with AccessControlUnauthorizedAccount
+        address stranger = address(0xDEAD);
+        vm.prank(stranger);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "AccessControlUnauthorizedAccount(address,bytes32)",
+                stranger,
+                adminRole
+            )
+        );
+        plp.unpause();
+
+        // still paused after failed attempt
+        assertTrue(plp.paused());
+    }
+
+    // ================================================================
+    // 🔴 PRI-05 RED #C: pause → unpause → deposit E2E · restores normal ops
+    // ================================================================
+
+    function test_pause_then_unpause_then_deposit_end_to_end() public {
+        LiquidityVault plp = _deployPlpDefault();
+        address user = address(0xBEEF);
+        uint256 amount = 100 * 1e6; // MIN_DEPOSIT = 100 USDC
+        uint8 tier3d = plp.TIER_3D();
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes memory sig = _signDeposit(plp, user, amount, tier3d, 0, deadline);
+
+        // ADMIN pauses → deposit blocked
+        vm.prank(ADMIN);
+        plp.pause();
+        vm.prank(user);
+        vm.expectRevert(bytes4(keccak256("EnforcedPause()")));
+        plp.deposit(amount, tier3d, deadline, sig);
+
+        // ADMIN unpauses → same deposit call now succeeds (Deposited event fires)
+        vm.prank(ADMIN);
+        plp.unpause();
+
+        vm.expectEmit(true, false, false, true);
+        emit Deposited(user, tier3d, amount);
+        vm.prank(user);
+        plp.deposit(amount, tier3d, deadline, sig);
+    }
+
+    // ================================================================
     // 🔴 RED #27: EIP-712 domain separator 初始化后可读
     // ================================================================
 
