@@ -33,6 +33,40 @@ Corresponding live mainnet deployment: **2026-07-24**, all contracts Snowscan-ve
 
 ---
 
+## On-chain deployment (Avalanche C-Chain · 43114)
+
+All in-scope contracts are deployed and Snowscan-verified on Avalanche C-Chain mainnet. Explorer · <https://snowscan.xyz>. Full deployment metadata(EIP-712 domain / params / role addresses)· [`deployments/avax-mainnet.json`](deployments/avax-mainnet.json).
+
+### In-scope contracts
+
+| # | Contract | Type | Address (Proxy for UUPS) | Implementation |
+|---|---|---|---|---|
+| 1 | **Vault** | UUPS Proxy | [`0xdf19d902…c403`](https://snowscan.xyz/address/0xdf19d902fcb6295366a06620f76dcb49e686c403) | [`0x96a87962…fa99`](https://snowscan.xyz/address/0x96a87962fe36db1ec9604a212ee67dab7f9bfa99) |
+| 2 | **SignatureVerifier** (library) | Library | inlined into consumers | — |
+| 3 | **LiquidationManager** | Direct | [`0xceb119aa…5de1`](https://snowscan.xyz/address/0xceb119aadd56b2fe602b634d50c40af21e985de1) | — |
+| 4 | **ReferralStorage** | UUPS Proxy | [`0x8426de38…4d57`](https://snowscan.xyz/address/0x8426de38a4b7b36b04d91826e28d8d3a29394d57) | [`0x9a5ef7d0…b4607`](https://snowscan.xyz/address/0x9a5ef7d0780e2e5a698317e59f02e550da3b4607) |
+| 5 | **RebateDistributor** | UUPS Proxy | [`0x726c54c3…48a3b`](https://snowscan.xyz/address/0x726c54c38119d66e8d2b5d7339b57d8b47e48a3b) | [`0x8d9e273f…26d73`](https://snowscan.xyz/address/0x8d9e273fbe5df22e35534bc2e20aaa2714326d73) |
+| 6 | **LiquidityVault (PLP)** | UUPS Proxy | [`0xc78786e8…1ddf7`](https://snowscan.xyz/address/0xc78786e840b8179b2f3fdbf0fedf69466a51ddf7) | [`0x7a970252…d8d7`](https://snowscan.xyz/address/0x7a9702521f1dfe1c078551d0e8e8e54580ebd8d7) |
+| 7 | **BufferPool** | Direct | [`0x83710e30…d6da`](https://snowscan.xyz/address/0x83710e300ec5a77c9252be4202f818ee1428d6da) | — |
+| 8 | **shared/** (Role · RoleStore · Price · Errors) | Libraries | inlined into consumers | — |
+
+### External dependency
+
+| Contract | Kind | Address |
+|---|---|---|
+| **USDC** (Circle native · collateral) | ERC20 | [`0xB97EF9Ef…48a6E`](https://snowscan.xyz/address/0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E) |
+
+### EOA roles
+
+| Role | Address | Note |
+|---|---|---|
+| Owner / Deployer | [`0x2821c28b…F386`](https://snowscan.xyz/address/0x2821c28b7A57c2E0537f5595e8e0eEAEC4b9F386) | Target post-audit · 2-of-3 SAFE multisig |
+| Backend + Oracle signer | [`0xBAAf208B…a047`](https://snowscan.xyz/address/0xBAAf208B9554dBA7C7316EBa3A77669F024Ba047) | v1 shares one EOA · will split before public opening |
+
+All in-scope contracts show **Contract Source Code Verified** on Snowscan and match this repository byte-for-byte.
+
+---
+
 ## Repo layout
 
 ```
