@@ -31,29 +31,33 @@
   "contracts": {
     "Vault": {
       "type": "UUPS Proxy",
-      "proxy": "0xdf19d902fcb6295366a06620f76dcb49e686c403",
-      "impl": "0x96a87962fe36db1ec9604a212ee67dab7f9bfa99",
+      "proxy": "0x0A30176bba21d262cDc652814b8C2A4c9a397b1b",
+      "impl": "0xfb4f9916a2bb07fb83d81a49221ea5ed63bc4889",
+      "implPrevious": [
+        "0x181f6Bbf7D706cc2B1B14b03Bf86D7B773C2e92D",
+        "0x96a87962fe36db1ec9604a212ee67dab7f9bfa99"
+      ],
       "verified": true,
       "source": "vault_contract/src/contracts/core/vault/Vault.sol",
       "eip712": { "name": "Primit Vault AVAX", "version": "1.0.0" }
     },
     "LiquidationManager": {
       "type": "Direct",
-      "address": "0xceb119aadd56b2fe602b634d50c40af21e985de1",
+      "address": "0x7F74d37C7c5853cFAe133A9Db120591170C4b7F5",
       "verified": true,
       "source": "vault_contract/src/contracts/core/liquidation/LiquidationManager.sol"
     },
     "ReferralStorage": {
       "type": "UUPS Proxy",
-      "proxy": "0x8426de38a4b7b36b04d91826e28d8d3a29394d57",
-      "impl": "0x9a5ef7d0780e2e5a698317e59f02e550da3b4607",
+      "proxy": "0x3953a15024c2F391733Bd614F0056f078Cd85199",
+      "impl": "0xf13b031b1a24942d43ee3d3c78a3e3e9667fab7b",
       "verified": true,
       "source": "referral_storage_contract/src/contracts/referral/ReferralStorage.sol"
     },
     "RebateDistributor": {
       "type": "UUPS Proxy",
-      "proxy": "0x726c54c38119d66e8d2b5d7339b57d8b47e48a3b",
-      "impl": "0x8d9e273fbe5df22e35534bc2e20aaa2714326d73",
+      "proxy": "0xe2E0cF80E30f3988b2704DED5B0ED3A908083b90",
+      "impl": "0x30b08f944b4b0e8461b439a41ba0ec64dade2a9d",
       "verified": true,
       "source": "rebate_contract/src/contracts/core/referral/RebateDistributor.sol",
       "eip712": { "name": "Primit Rebate AVAX", "version": "1.0.0" }

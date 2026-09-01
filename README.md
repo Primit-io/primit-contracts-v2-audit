@@ -41,11 +41,11 @@ All in-scope contracts are deployed and Snowscan-verified on Avalanche C-Chain m
 
 | # | Contract | Type | Address (Proxy for UUPS) | Implementation |
 |---|---|---|---|---|
-| 1 | **Vault** | UUPS Proxy | [`0xdf19d902…c403`](https://snowscan.xyz/address/0xdf19d902fcb6295366a06620f76dcb49e686c403) | [`0x96a87962…fa99`](https://snowscan.xyz/address/0x96a87962fe36db1ec9604a212ee67dab7f9bfa99) |
+| 1 | **Vault** | UUPS Proxy | [`0x0A30176b…7b1b`](https://snowscan.xyz/address/0x0A30176bba21d262cDc652814b8C2A4c9a397b1b) | [`0xfb4f9916…4889`](https://snowscan.xyz/address/0xfb4f9916a2bb07fb83d81a49221ea5ed63bc4889) |
 | 2 | **SignatureVerifier** (library) | Library | inlined into consumers | — |
-| 3 | **LiquidationManager** | Direct | [`0xceb119aa…5de1`](https://snowscan.xyz/address/0xceb119aadd56b2fe602b634d50c40af21e985de1) | — |
-| 4 | **ReferralStorage** | UUPS Proxy | [`0x8426de38…4d57`](https://snowscan.xyz/address/0x8426de38a4b7b36b04d91826e28d8d3a29394d57) | [`0x9a5ef7d0…b4607`](https://snowscan.xyz/address/0x9a5ef7d0780e2e5a698317e59f02e550da3b4607) |
-| 5 | **RebateDistributor** | UUPS Proxy | [`0x726c54c3…48a3b`](https://snowscan.xyz/address/0x726c54c38119d66e8d2b5d7339b57d8b47e48a3b) | [`0x8d9e273f…26d73`](https://snowscan.xyz/address/0x8d9e273fbe5df22e35534bc2e20aaa2714326d73) |
+| 3 | **LiquidationManager** | Direct | [`0x7F74d37C…b7F5`](https://snowscan.xyz/address/0x7F74d37C7c5853cFAe133A9Db120591170C4b7F5) | — |
+| 4 | **ReferralStorage** | UUPS Proxy | [`0x3953a150…5199`](https://snowscan.xyz/address/0x3953a15024c2F391733Bd614F0056f078Cd85199) | [`0xf13b031b…ab7b`](https://snowscan.xyz/address/0xf13b031b1a24942d43ee3d3c78a3e3e9667fab7b) |
+| 5 | **RebateDistributor** | UUPS Proxy | [`0xe2E0cF80…3b90`](https://snowscan.xyz/address/0xe2E0cF80E30f3988b2704DED5B0ED3A908083b90) | [`0x30b08f94…2a9d`](https://snowscan.xyz/address/0x30b08f944b4b0e8461b439a41ba0ec64dade2a9d) |
 | 6 | **LiquidityVault (PLP)** | UUPS Proxy | [`0xc78786e8…1ddf7`](https://snowscan.xyz/address/0xc78786e840b8179b2f3fdbf0fedf69466a51ddf7) | [`0x7eEC6049…B343`](https://snowscan.xyz/address/0x7eEC6049Bd502fE32eC2DE64E1f0F12d9d23B343) |
 | 7 | **BufferPool** | Direct | [`0x83710e30…d6da`](https://snowscan.xyz/address/0x83710e300ec5a77c9252be4202f818ee1428d6da) | — |
 | 8 | **shared/** (Role · RoleStore · Price · Errors) | Libraries | inlined into consumers | — |
