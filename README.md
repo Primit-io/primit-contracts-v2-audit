@@ -5,6 +5,8 @@
 > **Solidity**: 0.8.20 · Optimizer runs 200 · EVM shanghai
 > **Full inventory document**: [AUDIT-INVENTORY.md](./AUDIT-INVENTORY.md)
 > **Live addresses**: [deployments/avax-mainnet.json](./deployments/avax-mainnet.json)
+> **CertiK final report (2026-09-03)**: [docs/audit/CertiK-REP-Primit-2-final-2026-09-03.pdf](./docs/audit/CertiK-REP-Primit-2-final-2026-09-03.pdf) · audited commit `c8253041` · 26 findings · 18 Resolved · 7 Acknowledged · 0 Critical/Major
+> **Fix index** (repo-side): [CERTIK-V2-FIXES.md](./CERTIK-V2-FIXES.md)
 
 ---
 
