@@ -137,6 +137,12 @@ contract Vault is
     event BalanceDebitedByPLP(address indexed user, uint256 amount);
     /// @notice Emitted when PLP credits a user's balance
     event BalanceCreditedByPLP(address indexed user, uint256 amount);
+    /// @notice Emitted when the owner pushes USDC into the Vault as generic
+    ///         backing via `fundVault`. `newTotalFunded` is the running total
+    ///         since deploy; combined with the Vault's USDC balance it lets
+    ///         a reconciler compute unused backing without reading historical
+    ///         events. See DESIGN-2026-0916-001 §5.
+    event VaultFunded(address indexed funder, uint256 amount, uint256 newTotalFunded);
 
     /// @notice Thrown when liquidation settlement caller is not authorized.
     error UnauthorizedLiquidationManager(address caller);
@@ -1090,6 +1096,27 @@ contract Vault is
         emit BalanceCreditedByPLP(user, amount);
     }
 
+    /// @notice Owner-only: push USDC into the Vault as generic backing.
+    /// @dev    Adds USDC to the Vault's balance without crediting any user's
+    ///         _balances. This is the funding mechanism that lets
+    ///         `PLP.creditToUser` pay realized trading profits: profit credit
+    ///         only writes storage, so without pre-funded backing the payout
+    ///         is an IOU. `fundVault` writes the backing; the invariant
+    ///         `Σ _balances[users] ≤ usdc.balanceOf(vault)` must always hold.
+    ///
+    ///         The caller must have first `approve`d the Vault to pull the
+    ///         amount. Reverts on zero, on non-owner caller, and when paused.
+    ///
+    ///         Does NOT touch `_balances`, `depositedBalances`, `totalDeposits`,
+    ///         or any user-facing accounting — that is the whole point.
+    ///         Design: internal-docs/DESIGN-2026-0916-001-Phase6-Chain-Settlement-Rollout.md §5.
+    function fundVault(uint256 amount) external onlyOwner whenNotPaused {
+        if (amount == 0) revert ZeroAmount();
+        usdc.safeTransferFrom(msg.sender, address(this), amount);
+        totalFunded += amount;
+        emit VaultFunded(msg.sender, amount, totalFunded);
+    }
+
     function reinitializeProtocolFees(address initialRecipient) external override reinitializer(4) onlyOwner {
         _setProtocolFeeRecipient(initialRecipient);
     }
@@ -1295,6 +1322,14 @@ contract Vault is
     ///         setMaxProtocolFeeAmount; setter rejects 0.
     uint256 public maxProtocolFeeAmount;
 
-    // gap 从 31 减到 30,因为上面新增了 maxProtocolFeeAmount 占 1 slot(CertiK PRI-26)
-    uint256[30] private __gap;
+    /// @notice Running total of USDC the owner has pushed into the Vault as
+    ///         generic backing via `fundVault`, in USDC decimals.
+    /// @dev    Monotonic (only fundVault writes it, and only by +amount). Used
+    ///         by the reconciler to compute available backing headroom:
+    ///         `usdc.balanceOf(vault) - Σ _balances[users]` is the runtime
+    ///         backing; `totalFunded` is what Primit has cumulatively committed.
+    uint256 public totalFunded;
+
+    // gap 从 30 减到 29 · fundVault 引入 totalFunded 占 1 slot(Phase 6 Track C)
+    uint256[29] private __gap;
 }
