@@ -1,0 +1,247 @@
+--- /tmp/vault-storage-pre.json	2026-09-16 17:33:22
++++ /tmp/vault-storage-post.json	2026-09-16 17:33:22
+@@ -78,7 +78,7 @@
+       "label": "referralStorage",
+       "offset": 0,
+       "slot": "9",
+-      "type": "t_contract(IReferralStorage)6808"
++      "type": "t_contract(IReferralStorage)6861"
+     },
+     {
+       "astId": 2534,
+@@ -121,7 +121,7 @@
+       "type": "t_bytes32"
+     },
+     {
+-      "astId": 5369,
++      "astId": 5419,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "VERSION",
+       "offset": 0,
+@@ -129,7 +129,7 @@
+       "type": "t_string_storage"
+     },
+     {
+-      "astId": 5377,
++      "astId": 5427,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "closeOperatorApprovalExpiries",
+       "offset": 0,
+@@ -137,7 +137,7 @@
+       "type": "t_mapping(t_address,t_mapping(t_address,t_uint64))"
+     },
+     {
+-      "astId": 5383,
++      "astId": 5433,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "closeOperatorNonces",
+       "offset": 0,
+@@ -145,7 +145,7 @@
+       "type": "t_mapping(t_address,t_uint256)"
+     },
+     {
+-      "astId": 5389,
++      "astId": 5439,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "usedCloseIds",
+       "offset": 0,
+@@ -153,7 +153,7 @@
+       "type": "t_mapping(t_bytes32,t_bool)"
+     },
+     {
+-      "astId": 5393,
++      "astId": 5443,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "liquidationManager",
+       "offset": 0,
+@@ -161,7 +161,7 @@
+       "type": "t_address"
+     },
+     {
+-      "astId": 5399,
++      "astId": 5449,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "usedLiquidationSettlements",
+       "offset": 0,
+@@ -169,7 +169,7 @@
+       "type": "t_mapping(t_bytes32,t_bool)"
+     },
+     {
+-      "astId": 5405,
++      "astId": 5455,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "usedPositionBalanceSettlements",
+       "offset": 0,
+@@ -177,7 +177,7 @@
+       "type": "t_mapping(t_bytes32,t_bool)"
+     },
+     {
+-      "astId": 5409,
++      "astId": 5459,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "totalPositionSettlementCredits",
+       "offset": 0,
+@@ -185,7 +185,7 @@
+       "type": "t_uint256"
+     },
+     {
+-      "astId": 5413,
++      "astId": 5463,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "totalPositionSettlementDebits",
+       "offset": 0,
+@@ -193,7 +193,7 @@
+       "type": "t_uint256"
+     },
+     {
+-      "astId": 5417,
++      "astId": 5467,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "dailySettlementCreditCap",
+       "offset": 0,
+@@ -201,7 +201,7 @@
+       "type": "t_uint256"
+     },
+     {
+-      "astId": 5421,
++      "astId": 5471,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "settlementCreditUsedDay",
+       "offset": 0,
+@@ -209,7 +209,7 @@
+       "type": "t_uint256"
+     },
+     {
+-      "astId": 5425,
++      "astId": 5475,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "settlementCreditUsedAmount",
+       "offset": 0,
+@@ -217,7 +217,7 @@
+       "type": "t_uint256"
+     },
+     {
+-      "astId": 5429,
++      "astId": 5479,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "dailyUserSettlementCreditCap",
+       "offset": 0,
+@@ -225,7 +225,7 @@
+       "type": "t_uint256"
+     },
+     {
+-      "astId": 5435,
++      "astId": 5485,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "userSettlementCreditUsedDay",
+       "offset": 0,
+@@ -233,7 +233,7 @@
+       "type": "t_mapping(t_address,t_uint256)"
+     },
+     {
+-      "astId": 5441,
++      "astId": 5491,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "userSettlementCreditUsedAmount",
+       "offset": 0,
+@@ -241,7 +241,7 @@
+       "type": "t_mapping(t_address,t_uint256)"
+     },
+     {
+-      "astId": 5445,
++      "astId": 5495,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "depositPaused",
+       "offset": 0,
+@@ -249,7 +249,7 @@
+       "type": "t_bool"
+     },
+     {
+-      "astId": 5449,
++      "astId": 5499,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "withdrawPaused",
+       "offset": 1,
+@@ -257,7 +257,7 @@
+       "type": "t_bool"
+     },
+     {
+-      "astId": 5453,
++      "astId": 5503,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "protocolFeeRecipient",
+       "offset": 2,
+@@ -265,7 +265,7 @@
+       "type": "t_address"
+     },
+     {
+-      "astId": 5458,
++      "astId": 5508,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "__legacyAccruedProtocolFees",
+       "offset": 0,
+@@ -273,7 +273,7 @@
+       "type": "t_mapping(t_address,t_uint256)"
+     },
+     {
+-      "astId": 5461,
++      "astId": 5511,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "plpVaultAddress",
+       "offset": 0,
+@@ -281,7 +281,7 @@
+       "type": "t_address"
+     },
+     {
+-      "astId": 5464,
++      "astId": 5514,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+       "label": "maxProtocolFeeAmount",
+       "offset": 0,
+@@ -289,12 +289,20 @@
+       "type": "t_uint256"
+     },
+     {
+-      "astId": 5468,
++      "astId": 5517,
+       "contract": "src/contracts/core/vault/Vault.sol:Vault",
+-      "label": "__gap",
++      "label": "totalFunded",
+       "offset": 0,
+       "slot": "34",
+-      "type": "t_array(t_uint256)30_storage"
++      "type": "t_uint256"
++    },
++    {
++      "astId": 5521,
++      "contract": "src/contracts/core/vault/Vault.sol:Vault",
++      "label": "__gap",
++      "offset": 0,
++      "slot": "35",
++      "type": "t_array(t_uint256)29_storage"
+     }
+   ],
+   "types": {
+@@ -303,10 +311,10 @@
+       "label": "address",
+       "numberOfBytes": "20"
+     },
+-    "t_array(t_uint256)30_storage": {
++    "t_array(t_uint256)29_storage": {
+       "encoding": "inplace",
+-      "label": "uint256[30]",
+-      "numberOfBytes": "960",
++      "label": "uint256[29]",
++      "numberOfBytes": "928",
+       "base": "t_uint256"
+     },
+     "t_bool": {
+@@ -324,7 +332,7 @@
+       "label": "contract IERC20Metadata",
+       "numberOfBytes": "20"
+     },
+-    "t_contract(IReferralStorage)6808": {
++    "t_contract(IReferralStorage)6861": {
+       "encoding": "inplace",
+       "label": "contract IReferralStorage",
+       "numberOfBytes": "20"
